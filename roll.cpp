@@ -1,4 +1,5 @@
 #include "roll.h"
+#include <stdio.h>
 
 void NoteLinkedList::KeyAppend(Note* item) {
     item->key_next = NULL;
@@ -40,6 +41,7 @@ MidiRoll::MidiRoll(ui16 track_count, size_t pre_count) {
 Note* MidiRoll::get() {
     if (pre_i)
         return avails[--pre_i];
+    fprintf(stderr, "MidiRoll::get() == NULL!\n");
     return NULL;  // let it crash
 }
 void MidiRoll::pre_free(Note* item) {

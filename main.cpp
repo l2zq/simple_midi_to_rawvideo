@@ -1,14 +1,14 @@
-#include <queue>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <queue>
 #include "bars.h"
 #include "midi.h"
 #include "roll.h"
 
-// ffplay -f rawvideo -pixel_format abgr -s WxH -i -
+// ffplay -f rawvideo -pixel_format bgra -s WxH -i -
 
 ui16 frame_w = 640, frame_h = 480, fps = 30;
+ui32 max_polyphony = 32768;
 float vp_height = 1.0;
 
 #define FRAME_W frame_w
@@ -16,11 +16,18 @@ float vp_height = 1.0;
 #define FRAMERATE fps
 #define PRESCROLL_TICKS 0  //((tick_t)time_division * 0)
 #define VIEWPORT_HEIGHT vp_height;
+#define BGRA(R, G, B) (0xFF000000 + ((R) << 16) + ((G) << 8) + (B))
 
-const ui32 backgrnd = 0xFFFFFFFF;
-const ui32 colors[] = {0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF};
+const ui32 backgrnd = BGRA(0xD0, 0xD0, 0xFF);
+const ui32 colors[] = {                                                      //
+    BGRA(0xFF, 0x00, 0x00), BGRA(0x00, 0xFF, 0x00), BGRA(0x00, 0x00, 0xFF),  //
+    BGRA(0xFF, 0xFF, 0x00), BGRA(0x00, 0xFF, 0xFF), BGRA(0xFF, 0x00, 0xFF),  //
+    BGRA(0x7F, 0x00, 0x00), BGRA(0x00, 0x7F, 0x00), BGRA(0x00, 0x00, 0x7F),  //
+    BGRA(0x7F, 0x7F, 0x00), BGRA(0x00, 0x7F, 0x7F), BGRA(0x7F, 0x00, 0x7F),  //
+    BGRA(0x7F, 0xFF, 0x00), BGRA(0x00, 0x7F, 0xFF), BGRA(0x7F, 0x00, 0xFF),  //
+    BGRA(0xFF, 0x7F, 0x00), BGRA(0x00, 0xFF, 0x7F), BGRA(0xFF, 0x00, 0x7F)};
 const ui32 ncolors = sizeof(colors) / sizeof(ui32);
-constexpr size_t MAX_POLYPHONY = 16384;
+#define MAX_POLYPHONY max_polyphony
 
 typedef struct {
     tick_t time;
@@ -140,6 +147,8 @@ class MidiWhat {
     MidiWhat(const char* filename) {
         mf = new MidiFile(filename);
         if (mf->ok()) {
+            fprintf(stderr, "track_count: %d, time_division: %d\n", mf->track_count, mf->time_division);
+
             time_division = mf->time_division;
             viewport_height = time_division * vp_height;
 
@@ -165,7 +174,9 @@ int main(int argc, char** argv) {
             fps = atoi(argv[4]);
         if (argc > 5)
             vp_height = atof(argv[5]);
-        fprintf(stderr, "%dx%d %d %.3f\n", frame_w, frame_h, fps, vp_height);
+        if (argc > 6)
+            max_polyphony = atoi(argv[6]);
+        fprintf(stderr, "%dx%d %d %.3f %d\n", frame_w, frame_h, fps, vp_height, max_polyphony);
     }
     MidiWhat mw(argv[1]);
     if (mw.ok)
@@ -190,7 +201,9 @@ void MidiWhat::Main() {
     ui32 *frame = new ui32[FRAME_H * FRAME_W], color;
     for (ui32 i = 0; i < FRAME_H * FRAME_W; i++)
         frame[i] = backgrnd;
-
+    ui32* ys = new ui32[viewport_height + 1];
+    for (b_u = 0; b_u <= viewport_height; b_u++)
+        ys[b_u] = FRAME_H - b_u * FRAME_H / viewport_height;
     bool midi = false;
     Begin(0);
     RunToTime(top_tick);
@@ -207,7 +220,7 @@ void MidiWhat::Main() {
                     break;
                 else {
                     mpqn = set_mpqn->new_mpqn;
-                    fprintf(stderr, "set tempo = %.3f\n", 60000000.0 / mpqn);
+                    // fprintf(stderr, "set tempo = %.3f\n", 60000000.0 / mpqn);
                 }
                 mpqn_queue.pop();
             }
@@ -216,6 +229,7 @@ void MidiWhat::Main() {
         if (play_time_us == next_frame_us) {
             next_frame_us += 1000000 * time_division / FRAMERATE;
             for (k = 0; k < 128; k++) {
+                // break;  //!!!!
                 l = k * FRAME_W / 128;
                 r = (k + 1) * FRAME_W / 128;
                 for (bar = mb->kbar[k].head.next; bar != NULL; bar = bar->next) {
@@ -225,18 +239,21 @@ void MidiWhat::Main() {
                         color = colors[bar->track % ncolors];
                     if ((b_d = bar->bar_beg - bottom_tick) < 0)
                         b_d = 0;
-                    if ((b_u = bar->bar_end - bottom_tick) > viewport_height || bottom_tick < 0)
+                    if (bar->bar_end > top_tick)
                         b_u = viewport_height;
-                    d = FRAME_H - b_d * FRAME_H / viewport_height;
-                    u = FRAME_H - b_u * FRAME_H / viewport_height;
-                    for (x = l; x < r; x++)
-                        for (y = u; y < d; y++)
+                    else
+                        b_u = bar->bar_end - bottom_tick;
+                    d = ys[b_d];
+                    u = ys[b_u];
+                    for (y = u; y < d; y++)
+                        for (x = l; x < r; x++)
                             frame[y * FRAME_W + x] = color;
                 }
             }
-            // fprintf(stderr, "tick = %ld!\n", play_time_tick);
-            if (write(STDOUT_FILENO, frame, FRAME_H * FRAME_W * sizeof(ui32)) == -1)
+            if (write(STDOUT_FILENO, frame, FRAME_H * FRAME_W * sizeof(ui32)) == -1) {
+                fprintf(stderr, "MidiWhat: write() == -1 !\n");
                 break;
+            }
         }
         if (midi) {
             bottom_tick++;
@@ -245,5 +262,6 @@ void MidiWhat::Main() {
         // time advance
         play_time_us = next_frame_us > next_midi_us ? next_midi_us : next_frame_us;
     }
+    delete[] ys;
     delete[] frame;
 }

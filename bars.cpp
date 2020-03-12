@@ -92,7 +92,7 @@ Bar* MidiBars::get() {
         bar->bar_end = TICK_T_MAX;
         return bar;
     }
-    fprintf(stderr, "Bars::get == NULL\n");
+    fprintf(stderr, "MidiBars::get() == NULL!\n");
     return NULL;
 }
 void MidiBars::pre_free(Bar* bar) {
