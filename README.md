@@ -4,4 +4,4 @@ see what.sh
 Building:
 > g++ *.cpp -o main
 
-it uses mmap
+this program uses mmap, so it probably can't compile on windows
