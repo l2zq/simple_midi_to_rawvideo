@@ -20,6 +20,7 @@ float vp_height = 1.0;
 
 // const ui32 backgrnd = BGRA(0xD0, 0xD0, 0xFF);
 const ui32 backgrnd = BGRA(0xFF, 0xFF, 0xFF);
+const ui32 bordrclr = BGRA(0x00, 0x00, 0x00);
 const ui32 colors[] = {                                                      //
     BGRA(0xFF, 0x00, 0x00), BGRA(0x00, 0xFF, 0x00), BGRA(0x00, 0x00, 0xFF),  //
     BGRA(0xFF, 0xFF, 0x00), BGRA(0x00, 0xFF, 0xFF), BGRA(0xFF, 0x00, 0xFF),  //
@@ -201,7 +202,7 @@ void MidiWhat::Main() {
     ui16 k;
     si32 x, y, l, r, u, d;
     tick_t b_u, b_d;
-    ui32 *frame = new ui32[FRAME_H * FRAME_W], color;
+    ui32 *frame = new ui32[(FRAME_H+5) * FRAME_W], color;
     for (ui32 i = 0; i < FRAME_H * FRAME_W; i++)
         frame[i] = backgrnd;
     ui32* ys = new ui32[viewport_height + 1];
@@ -251,8 +252,22 @@ void MidiWhat::Main() {
                     for (y = u; y < d; y++)
                         for (x = l; x < r; x++)
                             frame[y * FRAME_W + x] = color;
+                    if(bar->noteid != -1)
+                        for(y = u; y < d; y++){
+                            frame[y * FRAME_W + l] = bordrclr;
+                            frame[y * FRAME_W + r-1] = bordrclr;
+                        }
+                    if(bar->note_beg > bottom_tick)
+                        if(bar->note_beg == bar->bar_beg)
+                            for (x = l; x < r; x++)
+                                frame[(d-1) * FRAME_W + x] = bordrclr;
+                    if(bar->bar_end < top_tick)
+                        if(bar->note_end == bar->bar_end)
+                            for (x = l; x < r; x++)
+                                frame[u * FRAME_W + x] = bordrclr;
                 }
             }
+            
             if (write(STDOUT_FILENO, frame, FRAME_H * FRAME_W * sizeof(ui32)) == -1) {
                 fprintf(stderr, "MidiWhat: write() == -1 !\n");
                 break;
