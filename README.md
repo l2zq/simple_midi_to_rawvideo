@@ -4,7 +4,6 @@ see mvid.sh
 
 Building:
 > g++ *.cpp -o main
-
-this program uses mmap, so it probably can't compile on windows
+this program uses mmap
 
 midi visualiser to rawvideo then encode with ffmpeg
