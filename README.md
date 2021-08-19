@@ -1,5 +1,6 @@
 # simple_midi_to_rawvideo
-see what.sh
+Usage:
+see mvid.sh
 
 Building:
 > g++ *.cpp -o main
