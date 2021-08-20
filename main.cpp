@@ -263,7 +263,7 @@ void MidiWhat::Main() {
           d = ys[b_d];
           u = ys[b_u];
           if (u >= d)
-            if ((u = d - 1) < 0)
+            if ((u = d - 3) < 0)
               u = 0;
           for (y = u; y < d; y++)
             for (x = l; x < r; x++)
