@@ -302,6 +302,14 @@ void MidiWhat::Main() {
         for (y = u; y < d; y++)
           for (x = l; x < r; x++)
             frame[y * FRAME_W + x] = color;
+        if (!iswhite && color != clr_black) { // black key border when keydown
+          for (y = u; y < d; y++) {
+            frame[y * FRAME_W + l] = clr_black;
+            frame[y * FRAME_W + r - 1] = clr_black;
+          }
+          for (x = l; x < r; x++)
+            frame[(d - 1) * FRAME_W + x] = clr_black;
+        }
         if (iswhite) {
           d = FRAME_H;
           u = black_key_d;

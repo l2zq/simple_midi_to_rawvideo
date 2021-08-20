@@ -32,6 +32,10 @@ OUTFN="${FN}-${FW}x${FH}@${FPS}-${VPH}.mkv"
 if [ $# -ge 7 ]; then
   OUTFN="$7"
 fi
+if [ $# -ge 8 ]; then
+  AUDIO="$8"
+  FFARG="-i $AUDIO $FFARG -c:a aac -b:a 320k"
+fi
 
 shift 1
 
