@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ $# -lt 1 ]; then
-  echo $0 filename [width height = 640 480] [fps = 30] [height = 1] [max_polyphony = 32768]
+  echo $0 filename [width height = 640 480] [fps = 30] [height = 1] [max_polyphony = 32768] [output filename] [audio file]
   exit 1
 fi
 
@@ -39,4 +39,4 @@ fi
 
 shift 1
 
-./main "${FN}" $* | ffmpeg -f rawvideo -pixel_format bgra -video_size ${FW}x${FH} -framerate ${FPS} -i - ${FFARG} -y "${OUTFN}"
+./main "${FN}" $* | prime-run ffmpeg -f rawvideo -pixel_format bgra -video_size ${FW}x${FH} -framerate ${FPS} -i - ${FFARG} -y "${OUTFN}"
