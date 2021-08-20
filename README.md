@@ -9,3 +9,4 @@ Building:
 > g++ *.cpp -o main
 
 this program uses mmap to load midi file.
+it also uses endian.h for be16toh and be32toh

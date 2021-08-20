@@ -26,7 +26,7 @@ if [ $# -ge 6 ]; then
   MAX=$6
 fi
 
-FFARG="-c:v h264_nvenc -pix_fmt yuv420p -b:v 20000k"
+FFARG="-c:v h264_nvenc -pix_fmt yuv420p -b:v 19000k"
 OUTFN="${FN}-${FW}x${FH}@${FPS}-${VPH}.mkv"
 
 if [ $# -ge 7 ]; then
